@@ -1,0 +1,31 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: flight-api
+  datasource:
+    url: jdbc:mysql://localhost:3306/flight_booking_db?createDatabaseIfNotExist=true
+    username: your_mysql_username # Placeholder - Replace with your actual username
+    password: your_mysql_password # Placeholder - Replace with your actual password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update # Use 'validate' or 'none' in production
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+# JWT Configuration
+jwt:
+  secret: YourSuperSecretKeyForJWTGenerationWhichIsLongAndSecureEnough32BytesLong # Replace with a real secure key (at least 256 bits / 32 Chars for HS256)
+  expirationMs: 3600000 # 1 hour (1 * 60 * 60 * 1000)
+
+# Initial logging setup (can be expanded)
+logging:
+  level:
+    root: INFO
+    com.flightbooking: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: INFO
+    org.springframework.security: DEBUG # Enable for security debugging if needed
