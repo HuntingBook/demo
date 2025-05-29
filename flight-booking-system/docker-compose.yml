@@ -1,0 +1,53 @@
+# flight-booking-system/docker-compose.yml
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: flight_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword # For initial setup, not used by app
+      MYSQL_DATABASE: flight_booking_db
+      MYSQL_USER: flightuser
+      MYSQL_PASSWORD: flightpass
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Optional: If you have schema.sql and data.sql and want them to be run by MySQL entrypoint
+      # - ./flight-api/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/1_schema.sql
+      # - ./flight-api/src/main/resources/data.sql:/docker-entrypoint-initdb.d/2_data.sql
+    ports:
+      - "3307:3306" # Map host 3307 to container 3306 to avoid conflict if local MySQL runs on 3306
+    healthcheck: # Basic healthcheck for MySQL
+        test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+
+  backend:
+    build: ./flight-api
+    container_name: flight_api_service
+    depends_on:
+      db:
+        condition: service_healthy # Wait for db to be healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/flight_booking_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true # useSSL=false for local dev
+      - SPRING_DATASOURCE_USERNAME=flightuser
+      - SPRING_DATASOURCE_PASSWORD=flightpass
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update # Or 'validate' if schema is managed by initdb.d
+      - JWT_SECRET=YourSuperSecretKeyForJWTGenerationWhichIsLongAndSecureEnough32CharsMin # Ensure this is strong
+      - JWT_EXPIRATIONMS=3600000 # Note: yml uses expirationMs, env var might need to be all caps or exact match based on Spring's binder
+      # Ensure logging level is appropriate for production if needed
+    # Optional: Add healthcheck for backend service
+
+  frontend:
+    build: ./flight-client
+    container_name: flight_client_service
+    ports:
+      - "5173:80" # Map Nginx port 80 in container to 5173 on host
+    depends_on:
+      - backend # Optional: Frontend can start but API calls will fail if backend is not ready
+
+volumes:
+  mysql_data:
