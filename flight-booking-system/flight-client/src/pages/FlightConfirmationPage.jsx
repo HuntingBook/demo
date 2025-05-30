@@ -2,6 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import bookingService from '../services/bookingService';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { Container, Typography, Paper, Button, Box, Grid, Divider, List, ListItem, ListItemIcon, ListItemText, Alert } from '@mui/material';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import FlightLandIcon from '@mui/icons-material/FlightLand';
@@ -58,15 +61,35 @@ export default function FlightConfirmationPage() {
     }
   }, [navigate, isAuthenticated]);
 
-  const handleContinueToPayment = () => {
-    // This is where the booking creation logic would start
-    // For now, it's a placeholder.
-    // It would involve collecting passenger details (if not already done)
-    // and then calling a bookingService.createBooking(...)
-    alert('Payment feature is not yet implemented. Booking process would start here.');
-    console.log('Proceeding to payment with flight:', flightDetails, 'and user:', user);
-    // Example navigation to a "My Bookings" page or a success page after mock booking
-    // navigate('/bookings'); 
+  const handleContinueToPayment = async () => {
+    if (!flightDetails || !user) {
+      toast.error('Flight details or user information is missing.');
+      return;
+    }
+
+    const bookingData = {
+      flightId: flightDetails.flightId, // Assuming flightDetails has an 'id' property for the flight
+      passengers: [
+        {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          // Add other passenger details if your backend expects them e.g. dateOfBirth, passportNumber
+        },
+      ],
+    };
+
+    try {
+      const createdBooking = await bookingService.createBooking(bookingData);
+      toast.success(`Booking successful! Reference: ${createdBooking.reference}`);
+      // Clear selected flight from session storage after successful booking
+      sessionStorage.removeItem('selectedFlight');
+      navigate('/bookings'); // Navigate to bookings page
+    } catch (err) {
+      console.error('Booking failed:', err);
+      toast.error(err.message || 'Booking failed. Please try again.');
+      setError(err.message || 'Booking failed. Please try again.');
+    }
   };
 
   if (error) {
@@ -94,6 +117,18 @@ export default function FlightConfirmationPage() {
   return (
     // Container uses MUI for max-width, Tailwind for padding/margin
     <Container maxWidth="lg" className="mt-4 sm:mt-8 p-2 sm:p-4 mb-8">
+<ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
       {/* Paper uses MUI for elevation/theming, Tailwind for padding, rounded corners */}
       <Paper elevation={3} className="p-4 sm:p-6 md:p-8 rounded-xl">
         {/* Typography uses MUI variant, Tailwind for responsive size, margin, text alignment */}

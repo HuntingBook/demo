@@ -31,7 +31,7 @@ export default function FlightListPage() {
     if (from && to && date) {
       setSearchCriteria({ from, to, date: dayjs(date).format('ddd, MMM D, YYYY') }); // Format date for display
       setIsLoading(true);
-      flightService.searchFlights({ from, to, date })
+      flightService.searchFlights({ fromAirportCode: from, toAirportCode: to, departureDate: date })
         .then(data => {
           setFlights(data || []);
           if (!data || data.length === 0) {

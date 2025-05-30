@@ -37,13 +37,13 @@ export default function BookingCard({ booking }) {
     <Paper elevation={2} className="p-3 sm:p-4 mb-4 rounded-xl"> {/* Tailwind: padding, margin, rounded corners */}
       <Grid container spacing={{xs: 1, sm: 2}} alignItems="center">
         <Grid item xs={12} sm={4} md={3}>
-          <Typography variant="subtitle2" className="text-xs sm:text-sm text-gray-600">Booking Ref:</Typography> {/* Tailwind: responsive text size, color */}
+          <Typography variant="subtitle2" className="text-xs sm:text-sm text-gray-600">Booking Ref:</Typography> 
           <Typography variant="h6" component="div" className="flex items-center text-base sm:text-lg font-semibold"> {/* Tailwind: flex, items-center, responsive text size, font weight */}
             <ConfirmationNumberOutlinedIcon fontSize="small" className="mr-1" aria-hidden="true" /> {reference || 'N/A'} {/* Tailwind: margin */}
           </Typography>
         </Grid>
         <Grid item xs={12} sm={5} md={6}>
-          <Typography variant="subtitle2" className="text-xs sm:text-sm text-gray-600">Flight Details:</Typography> {/* Tailwind: responsive text size, color */}
+          <Typography variant="subtitle2" className="text-xs sm:text-sm text-gray-600">Flight Details:</Typography> 
           {flightInfo ? (
             <>
               <Box className="flex items-center mt-1"> {/* Tailwind: flex, items-center, margin */}
@@ -54,13 +54,13 @@ export default function BookingCard({ booking }) {
               </Box>
               <Box className="flex items-center mt-1 ml-1"> {/* Tailwind: flex, items-center, margin */}
                  <EventIcon className="mr-2 text-gray-700 text-lg" aria-hidden="true" /> {/* Tailwind: margin, color, size */}
-                <Typography variant="body2" className="text-xs sm:text-sm text-gray-600"> {/* Tailwind: responsive text size, color */}
+                <Typography variant="body2" className="text-xs sm:text-sm text-gray-600"> 
                   {dayjs(flightInfo.departureDate).format('ddd, MMM D, YYYY')} at {flightInfo.departureTime}
                 </Typography>
               </Box>
             </>
           ) : (
-            <Typography variant="body2" className="text-xs sm:text-sm text-gray-600">Flight details not available.</Typography> {/* Tailwind: responsive text size, color */}
+            <Typography variant="body2" className="text-xs sm:text-sm text-gray-600">Flight details not available.</Typography> 
           )}
         </Grid>
         <Grid item xs={12} sm={3} md={3} className="text-left sm:text-right mt-2 sm:mt-0"> {/* Tailwind: text alignment, responsive margin */}
