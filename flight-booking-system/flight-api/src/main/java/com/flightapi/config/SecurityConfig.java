@@ -92,6 +92,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll() // For Swagger if used
+.requestMatchers(org.springframework.http.HttpMethod.GET, "/api/flights", "/api/flights/**").permitAll() // Allow guest access to view flights
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

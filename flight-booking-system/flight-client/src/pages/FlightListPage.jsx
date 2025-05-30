@@ -18,30 +18,69 @@ export default function FlightListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchCriteria, setSearchCriteria] = useState({});
+const [tripType, setTripType] = useState('ONE_WAY');
+  const [returnDateFromParams, setReturnDateFromParams] = useState(null);
+  const [selectedOutboundFlight, setSelectedOutboundFlight] = useState(null);
+  const [currentLegSelection, setCurrentLegSelection] = useState('outbound'); // 'outbound' or 'return'
   
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState('price_asc'); // e.g., 'price_asc', 'time_asc'
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const from = params.get('from');
-    const to = params.get('to');
-    const date = params.get('date');
+    const fromParam = params.get('from');
+    const toParam = params.get('to');
+    const dateParam = params.get('date');
+    const tripTypeParam = params.get('tripType');
+    const returnDateParam = params.get('returnDate');
 
-    if (from && to && date) {
-      setSearchCriteria({ from, to, date: dayjs(date).format('ddd, MMM D, YYYY') }); // Format date for display
+    setTripType(tripTypeParam || 'ONE_WAY');
+    if (returnDateParam) {
+      setReturnDateFromParams(returnDateParam);
+    }
+    
+    // Determine which leg to fetch
+    let effectiveFrom = fromParam;
+    let effectiveTo = toParam;
+    let effectiveDate = dateParam;
+
+    if (tripTypeParam === 'ROUND_TRIP' && currentLegSelection === 'return' && selectedOutboundFlight) {
+      // For return leg, swap from/to and use returnDate
+      effectiveFrom = selectedOutboundFlight.destinationAirport.code; // Assuming structure from FlightDTO
+      effectiveTo = selectedOutboundFlight.departureAirport.code;
+      effectiveDate = returnDateParam;
+      setSearchCriteria({ 
+        from: effectiveFrom, 
+        to: effectiveTo, 
+        date: dayjs(effectiveDate).format('ddd, MMM D, YYYY'),
+        tripType: 'ROUND_TRIP',
+        leg: 'return'
+      });
+    } else {
+      // For outbound leg or one-way
+      setSearchCriteria({ 
+        from: fromParam, 
+        to: toParam, 
+        date: dayjs(dateParam).format('ddd, MMM D, YYYY'),
+        tripType: tripTypeParam || 'ONE_WAY',
+        leg: 'outbound'
+      });
+    }
+
+    if (effectiveFrom && effectiveTo && effectiveDate) {
       setIsLoading(true);
-      flightService.searchFlights({ fromAirportCode: from, toAirportCode: to, departureDate: date })
+      setFlights([]); // Clear previous flights
+      flightService.searchFlights({ fromAirportCode: effectiveFrom, toAirportCode: effectiveTo, departureDate: effectiveDate })
         .then(data => {
           setFlights(data || []);
           if (!data || data.length === 0) {
-            toast.info('No flights found for the selected criteria.');
+            toast.info(`No ${currentLegSelection === 'return' ? 'return' : 'outbound'} flights found.`);
           }
           setIsLoading(false);
         })
         .catch(err => {
-          const message = err.message || 'Failed to fetch flights. Please try again.';
-          setError(message); // Keep local error for Alert if needed
+          const message = err.message || `Failed to fetch ${currentLegSelection === 'return' ? 'return' : 'outbound'} flights.`;
+          setError(message);
           toast.error(message);
           setIsLoading(false);
           setFlights([]);
@@ -51,9 +90,28 @@ export default function FlightListPage() {
       setError(message);
       toast.warn(message);
       setIsLoading(false);
-      // navigate('/'); // Optional: Redirect to home if no search params
     }
-  }, [location.search]); // Removed navigate from dependencies as it's not used in useEffect
+  }, [location.search, currentLegSelection, selectedOutboundFlight, navigate]); // Added navigate
+const handleFlightSelection = (flight) => {
+    if (tripType === 'ROUND_TRIP' && currentLegSelection === 'outbound') {
+      setSelectedOutboundFlight(flight);
+      setCurrentLegSelection('return'); // Switch to selecting the return leg
+      setCurrentPage(1); // Reset page for return flight results
+      // The useEffect will re-trigger due to currentLegSelection change
+      // and fetch flights for the return leg.
+      toast.info('Please select your return flight.');
+    } else {
+      // For one-way or when selecting the return leg of a round trip
+      if (tripType === 'ROUND_TRIP') {
+        sessionStorage.setItem('selectedOutboundFlight', JSON.stringify(selectedOutboundFlight));
+        sessionStorage.setItem('selectedReturnFlight', JSON.stringify(flight));
+      } else {
+        sessionStorage.setItem('selectedFlight', JSON.stringify(flight));
+      }
+      sessionStorage.setItem('tripType', tripType); // Store trip type for confirmation page
+      navigate('/confirm-flight');
+    }
+  };
 
   const handleSortChange = (event) => {
     setSortOrder(event.target.value);
@@ -166,7 +224,7 @@ export default function FlightListPage() {
         ) : ( // Display actual flight cards
           paginatedFlights.map(flight => (
             <Grid item xs={12} key={flight.flightId}>
-              <FlightCard flight={flight} />
+              <FlightCard flight={flight} onSelectFlight={handleFlightSelection} />
             </Grid>
           ))
         )}

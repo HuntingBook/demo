@@ -15,14 +15,24 @@ CREATE TABLE IF NOT EXISTS AIRPORT (
     city VARCHAR(100) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS AIRLINE_COMPANIES (
+    airline_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    logo_url VARCHAR(255)
+);
 CREATE TABLE IF NOT EXISTS FLIGHT (
     flight_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     flight_number VARCHAR(10) NOT NULL,
+    airline_id BIGINT,
     departure_airport_id BIGINT,
     destination_airport_id BIGINT,
     departure_date DATE NOT NULL,
     departure_time TIME NOT NULL,
+arrival_time TIME NOT NULL,
     price DECIMAL(10,2) NOT NULL,
+is_direct BOOLEAN NOT NULL DEFAULT TRUE,
+    cabin_class VARCHAR(20),
+    FOREIGN KEY (airline_id) REFERENCES AIRLINE_COMPANIES(airline_id),
     FOREIGN KEY (departure_airport_id) REFERENCES AIRPORT(airport_id),
     FOREIGN KEY (destination_airport_id) REFERENCES AIRPORT(airport_id)
 );

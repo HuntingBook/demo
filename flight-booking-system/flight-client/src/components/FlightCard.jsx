@@ -28,26 +28,28 @@ const calculateDuration = (departureTime, arrivalTime) => {
     }
 };
 
-export default function FlightCard({ flight }) {
+export default function FlightCard({ flight, onSelectFlight }) { // Added onSelectFlight prop
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  const handleSelectFlight = () => {
-    // Store selected flight in session/local storage or pass via route state
-    sessionStorage.setItem('selectedFlight', JSON.stringify(flight));
-    if (isAuthenticated) {
-      navigate('/confirm-flight');
+  const handleSelectFlightInternal = () => {
+    if (onSelectFlight) {
+      onSelectFlight(flight); // Call the passed handler
     } else {
-      // Redirect to login, and after login, redirect to confirm-flight
-      // Storing intended path in sessionStorage or localStorage for post-login redirect
-      sessionStorage.setItem('postLoginRedirect', '/confirm-flight');
-      navigate('/login');
+      // Fallback to old behavior if onSelectFlight is not provided
+      sessionStorage.setItem('selectedFlight', JSON.stringify(flight));
+      if (isAuthenticated) {
+        navigate('/confirm-flight');
+      } else {
+        sessionStorage.setItem('postLoginRedirect', '/confirm-flight');
+        navigate('/login');
+      }
     }
   };
 
   if (!flight) return null;
 
-  const { flightNumber, departureAirport, destinationAirport, departureDate, departureTime, price } = flight;
+  const { flightNumber, airlineCompany, departureAirport, destinationAirport, departureDate, departureTime, price, isDirect, cabinClass } = flight;
   const arrivalTime = flight.arrivalTime; 
   const duration = calculateDuration(departureTime, arrivalTime); 
 
@@ -56,7 +58,8 @@ export default function FlightCard({ flight }) {
       <Grid container spacing={2} alignItems="center">
         <Grid item xs={12} sm={6} md={2}>
           <Typography variant="h6" component="div" className="font-semibold">{flightNumber || 'N/A'}</Typography>
-          <Typography variant="body2" className="text-gray-600">Airline Name</Typography> {/* Tailwind: text color */}
+          <Typography variant="body2" className="text-gray-600">{airlineCompany?.name || 'N/A'}</Typography> {/* Tailwind: text color */}
+          {cabinClass && <Chip label={cabinClass} size="small" className="mt-1" />}
         </Grid>
         <Grid item xs={12} sm={6} md={5}>
           <Box className="flex items-center mb-2"> {/* Tailwind: flex, items-center, margin */}
@@ -79,7 +82,7 @@ export default function FlightCard({ flight }) {
           </Typography> 
         </Grid>
         <Grid item xs={6} sm={3} md={2} className="text-left sm:text-center"> {/* Tailwind: text alignment */}
-          <Chip label="Direct" color="success" variant="outlined" size="small" />
+          <Chip label={isDirect ? "Direct" : "1+ Stops"} color={isDirect ? "success" : "warning"} variant="outlined" size="small" />
         </Grid>
         <Grid item xs={6} sm={9} md={3} className="text-right"> {/* Tailwind: text alignment */}
           <Typography variant="h5" component="div" color="primary" className="flex items-center justify-end text-lg sm:text-xl"> {/* Tailwind: flex, items-center, justify-end, responsive text size */}
@@ -89,7 +92,7 @@ export default function FlightCard({ flight }) {
             variant="contained" 
             color="primary" 
             className="mt-2 w-full sm:w-auto" // Tailwind: margin, responsive width
-            onClick={handleSelectFlight}
+            onClick={handleSelectFlightInternal}
             aria-label={`Select flight ${flightNumber || ''} from ${departureAirport?.code || ''} to ${destinationAirport?.code || ''} for $${price?.toFixed(2) || 'N/A'}`}
           >
             Select Flight

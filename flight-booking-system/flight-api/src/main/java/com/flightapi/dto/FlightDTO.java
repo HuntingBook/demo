@@ -27,6 +27,11 @@ public class FlightDTO {
      * The flight number (e.g., "AA123").
      */
     private String flightNumber;
+/**
+     * DTO containing details of the airline company.
+     * See {@link AirlineCompanyDTO}.
+     */
+    private AirlineCompanyDTO airlineCompany;
     /**
      * DTO containing details of the departure airport.
      * See {@link AirportDTO}.
@@ -45,10 +50,16 @@ public class FlightDTO {
      * The time of departure.
      */
     private LocalTime departureTime;
+/**
+     * The time of arrival.
+     */
+    private LocalTime arrivalTime;
     /**
      * The price of the flight ticket.
      */
     private BigDecimal price;
+private boolean isDirect;
+    private String cabinClass;
 
     /**
      * Static factory method to create a {@link FlightDTO} from a {@link Flight} entity.
@@ -63,11 +74,15 @@ public class FlightDTO {
         return new FlightDTO(
                 flight.getFlightId(),
                 flight.getFlightNumber(),
+                AirlineCompanyDTO.fromAirlineCompany(flight.getAirlineCompany()),
                 AirportDTO.fromAirport(flight.getDepartureAirport()),
                 AirportDTO.fromAirport(flight.getDestinationAirport()),
                 flight.getDepartureDate(),
                 flight.getDepartureTime(),
-                flight.getPrice()
+                flight.getArrivalTime(),
+                flight.getPrice(),
+                flight.isDirect(),
+                flight.getCabinClass()
         );
     }
 }

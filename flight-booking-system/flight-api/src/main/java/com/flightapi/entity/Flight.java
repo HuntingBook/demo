@@ -37,6 +37,13 @@ public class Flight {
     @Column(name = "flight_number", nullable = false, length = 10)
     private String flightNumber;
 
+/**
+     * The airline company operating this flight.
+     * This is a many-to-one relationship with the {@link AirlineCompany} entity.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "airline_id", nullable = true) // Assuming an airline might not be immediately known or is optional
+    private AirlineCompany airlineCompany;
     /**
      * The departure airport for this flight.
      * This is a many-to-one relationship with the {@link Airport} entity.
@@ -66,6 +73,12 @@ public class Flight {
      */
     @Column(name = "departure_time", nullable = false)
     private LocalTime departureTime;
+/**
+     * The time of arrival for this flight.
+     * This field cannot be null.
+     */
+    @Column(name = "arrival_time", nullable = false)
+    private LocalTime arrivalTime;
 
     /**
      * The price of a ticket for this flight.
@@ -73,4 +86,9 @@ public class Flight {
      */
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
+@Column(name = "is_direct", nullable = false)
+    private boolean isDirect = true; // Default to true, can be set otherwise
+
+    @Column(name = "cabin_class", length = 20) // e.g., ECONOMY, BUSINESS, FIRST
+    private String cabinClass;
 }

@@ -35,29 +35,45 @@ export default function FlightConfirmationPage() {
   const { user, isAuthenticated } = useAuth(); // Assuming user object has firstName, lastName, email
   const [flightDetails, setFlightDetails] = useState(null);
   const [error, setError] = useState('');
+const [returnFlightDetails, setReturnFlightDetails] = useState(null); // Return flight
+  const [tripType, setTripType] = useState('ONE_WAY');
 
   useEffect(() => {
     if (!isAuthenticated) {
-        // If somehow user gets here without being authenticated, redirect to login
-        // Storing intended path for post-login redirect
         sessionStorage.setItem('postLoginRedirect', '/confirm-flight');
         navigate('/login');
         return;
     }
 
-    const storedFlight = sessionStorage.getItem('selectedFlight');
-    if (storedFlight) {
-      try {
-        const parsedFlight = JSON.parse(storedFlight);
-        setFlightDetails(parsedFlight);
-      } catch (e) {
-        setError('Could not load flight details. Please try selecting a flight again.');
-        console.error("Error parsing flight details from sessionStorage:", e);
+    const storedTripType = sessionStorage.getItem('tripType');
+    setTripType(storedTripType || 'ONE_WAY');
+
+    if (storedTripType === 'ROUND_TRIP') {
+      const storedOutboundFlight = sessionStorage.getItem('selectedOutboundFlight');
+      const storedReturnFlight = sessionStorage.getItem('selectedReturnFlight');
+      if (storedOutboundFlight && storedReturnFlight) {
+        try {
+          setFlightDetails(JSON.parse(storedOutboundFlight));
+          setReturnFlightDetails(JSON.parse(storedReturnFlight));
+        } catch (e) {
+          setError('Could not load round trip flight details. Please try selecting flights again.');
+          console.error("Error parsing round trip flight details:", e);
+        }
+      } else {
+        setError('Round trip flight details are incomplete. Please select both flights again.');
       }
-    } else {
-      setError('No flight selected for confirmation. Please start a new search.');
-      // Optionally navigate back to home or flight list after a delay
-      // setTimeout(() => navigate('/'), 3000);
+    } else { // One-way
+      const storedFlight = sessionStorage.getItem('selectedFlight');
+      if (storedFlight) {
+        try {
+          setFlightDetails(JSON.parse(storedFlight));
+        } catch (e) {
+          setError('Could not load flight details. Please try selecting a flight again.');
+          console.error("Error parsing flight details:", e);
+        }
+      } else {
+        setError('No flight selected for confirmation. Please start a new search.');
+      }
     }
   }, [navigate, isAuthenticated]);
 
@@ -83,7 +99,10 @@ export default function FlightConfirmationPage() {
       const createdBooking = await bookingService.createBooking(bookingData);
       toast.success(`Booking successful! Reference: ${createdBooking.reference}`);
       // Clear selected flight from session storage after successful booking
-      sessionStorage.removeItem('selectedFlight');
+      sessionStorage.removeItem('selectedFlight'); // For one-way
+      sessionStorage.removeItem('selectedOutboundFlight'); // For round-trip
+      sessionStorage.removeItem('selectedReturnFlight'); // For round-trip
+      sessionStorage.removeItem('tripType');
       navigate('/bookings'); // Navigate to bookings page
     } catch (err) {
       console.error('Booking failed:', err);
@@ -109,11 +128,78 @@ export default function FlightConfirmationPage() {
     );
   }
 
-  const { flightNumber, departureAirport, destinationAirport, departureDate, departureTime, arrivalTime, price } = flightDetails;
-  const duration = calculateDuration(departureTime, arrivalTime);
-  const taxes = price * 0.1; // Example: 10% tax
-  const totalPrice = price + taxes;
+  // Destructure outbound flight details
+  const { 
+    flightNumber, airlineCompany, departureAirport, destinationAirport, 
+    departureDate, departureTime, arrivalTime, price, cabinClass, isDirect 
+  } = flightDetails || {};
+  
+  const duration = flightDetails ? calculateDuration(departureTime, arrivalTime) : "N/A";
+  
+  // Destructure return flight details if available
+  const {
+    flightNumber: returnFlightNumber, airlineCompany: returnAirlineCompany, 
+    departureAirport: returnDepartureAirport, destinationAirport: returnDestinationAirport,
+    departureDate: returnDepartureDate, departureTime: returnDepartureTime, 
+    arrivalTime: returnArrivalTime, price: returnPrice, 
+    cabinClass: returnCabinClass, isDirect: returnIsDirect
+  } = returnFlightDetails || {};
 
+  const returnDuration = returnFlightDetails ? calculateDuration(returnDepartureTime, returnArrivalTime) : "N/A";
+
+  // Calculate prices
+  const outboundPrice = flightDetails?.price || 0;
+  const returnFlightPrice = returnFlightDetails?.price || 0;
+  const baseTotalPrice = outboundPrice + returnFlightPrice;
+  const taxes = baseTotalPrice * 0.1; // Example: 10% tax on total
+  const finalTotalPrice = baseTotalPrice + taxes;
+
+// Helper function to render flight leg details
+  const renderFlightLeg = (legDetails, legTitle) => {
+    if (!legDetails) return null;
+    const { flightNumber: legFN, airlineCompany: legAC, departureAirport: legDepAir, destinationAirport: legDestAir, departureDate: legDepDate, departureTime: legDepTime, arrivalTime: legArrTime, cabinClass: legCabin, isDirect: legIsDirect } = legDetails;
+    const legDuration = calculateDuration(legDepTime, legArrTime);
+
+    return (
+      <Box mb={tripType === 'ROUND_TRIP' ? 4 : 0}>
+        {tripType === 'ROUND_TRIP' && <Typography variant="h6" gutterBottom className="text-md sm:text-lg font-medium mb-2">{legTitle}</Typography>}
+        <List dense>
+          <ListItem className="px-0">
+            <ListItemIcon><ConfirmationNumberIcon color="primary" aria-hidden="true" /></ListItemIcon>
+            <ListItemText primary="Flight Number" secondary={`${legFN || 'N/A'} (${legAC?.name || 'Unknown Airline'})`} />
+          </ListItem>
+          <ListItem className="px-0">
+            <ListItemIcon><EventSeatIcon color="primary" aria-hidden="true" /></ListItemIcon>
+            <ListItemText primary="Cabin Class" secondary={legCabin || 'N/A'} />
+          </ListItem>
+          <ListItem className="px-0">
+            <ListItemIcon><Typography color="primary" sx={{ ml: 0.5, fontWeight: 'bold' }}>{legIsDirect ? "Direct" : "Stops"}</Typography></ListItemIcon>
+            <ListItemText primary="Flight Type" secondary={legIsDirect ? "Direct Flight" : "Connecting Flight"} />
+          </ListItem>
+          <ListItem className="px-0">
+            <ListItemIcon><FlightTakeoffIcon color="primary" aria-hidden="true" /></ListItemIcon>
+            <ListItemText primary="Departure" secondary={`${legDepAir?.code} (${legDepAir?.city})`} />
+          </ListItem>
+          <ListItem className="px-0">
+            <ListItemIcon><CalendarTodayIcon color="primary" aria-hidden="true" /></ListItemIcon>
+            <ListItemText primary="Date & Time" secondary={`${dayjs(legDepDate).format('ddd, MMM D, YYYY')} at ${legDepTime}`} />
+          </ListItem>
+          <ListItem className="px-0">
+            <ListItemIcon><AccessTimeIcon color="primary" aria-hidden="true" /></ListItemIcon>
+            <ListItemText primary="Duration" secondary={legDuration} />
+          </ListItem>
+          <ListItem className="px-0">
+            <ListItemIcon><FlightLandIcon color="primary" aria-hidden="true" /></ListItemIcon>
+            <ListItemText primary="Arrival" secondary={`${legDestAir?.code} (${legDestAir?.city})`} />
+          </ListItem>
+          <ListItem className="px-0">
+            <ListItemIcon><CalendarTodayIcon color="primary" aria-hidden="true" /></ListItemIcon>
+            <ListItemText primary="Arrival Date & Time" secondary={`${dayjs(legDepDate).format('ddd, MMM D, YYYY')} at ${legArrTime || 'N/A'}`} />
+          </ListItem>
+        </List>
+      </Box>
+    );
+  };
   return (
     // Container uses MUI for max-width, Tailwind for padding/margin
     <Container maxWidth="lg" className="mt-4 sm:mt-8 p-2 sm:p-4 mb-8">
@@ -141,33 +227,13 @@ export default function FlightConfirmationPage() {
           {/* Flight Details Section */}
           <Grid item xs={12} md={7}>
             {/* Typography uses MUI variant, Tailwind for responsive size */}
-            <Typography variant="h6" gutterBottom className="text-lg sm:text-xl font-medium mb-3">Flight Details</Typography>
-            <List dense>
-              <ListItem className="px-0"> {/* Tailwind: padding reset */}
-                <ListItemIcon><ConfirmationNumberIcon color="primary" aria-hidden="true" /></ListItemIcon>
-                <ListItemText primary="Flight Number" secondary={flightNumber || 'N/A'} />
-              </ListItem>
-              <ListItem className="px-0">
-                <ListItemIcon><FlightTakeoffIcon color="primary" aria-hidden="true" /></ListItemIcon>
-                <ListItemText primary="Departure" secondary={`${departureAirport?.code} (${departureAirport?.city})`} />
-              </ListItem>
-              <ListItem className="px-0">
-                <ListItemIcon><CalendarTodayIcon color="primary" aria-hidden="true" /></ListItemIcon>
-                <ListItemText primary="Date & Time" secondary={`${dayjs(departureDate).format('ddd, MMM D, YYYY')} at ${departureTime}`} />
-              </ListItem>
-               <ListItem className="px-0">
-                <ListItemIcon><AccessTimeIcon color="primary" aria-hidden="true" /></ListItemIcon>
-                <ListItemText primary="Duration" secondary={duration} />
-              </ListItem>
-              <ListItem className="px-0">
-                <ListItemIcon><FlightLandIcon color="primary" aria-hidden="true" /></ListItemIcon>
-                <ListItemText primary="Arrival" secondary={`${destinationAirport?.code} (${destinationAirport?.city})`} />
-              </ListItem>
-              <ListItem className="px-0">
-                <ListItemIcon><CalendarTodayIcon color="primary" aria-hidden="true" /></ListItemIcon>
-                <ListItemText primary="Arrival Date & Time" secondary={`${dayjs(departureDate).format('ddd, MMM D, YYYY')} at ${arrivalTime || 'N/A'}`} />
-              </ListItem>
-            </List>
+            {renderFlightLeg(flightDetails, "Outbound Flight")}
+            {tripType === 'ROUND_TRIP' && returnFlightDetails && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                {renderFlightLeg(returnFlightDetails, "Return Flight")}
+              </>
+            )}
           </Grid>
 
           {/* Price & Passenger Details Section */}
@@ -192,7 +258,7 @@ export default function FlightConfirmationPage() {
             <List dense>
               <ListItem className="px-0 flex justify-between"> {/* Tailwind: padding reset, flex layout */}
                 <ListItemText primary="Base Fare" />
-                <Typography variant="body1">${price?.toFixed(2)}</Typography>
+                <Typography variant="body1">${baseTotalPrice?.toFixed(2)}</Typography>
               </ListItem>
               <ListItem className="px-0 flex justify-between">
                 <ListItemText primary="Taxes & Fees (Est.)" />
@@ -200,7 +266,7 @@ export default function FlightConfirmationPage() {
               </ListItem>
               <ListItem className="px-0 flex justify-between font-bold"> {/* Tailwind: padding reset, flex layout, font weight */}
                 <ListItemText primary="Total Price" classes={{primary: "font-bold"}} /> {/* Tailwind: font weight for primary text */}
-                <Typography variant="h6" color="primary" className="text-xl sm:text-2xl">${totalPrice.toFixed(2)}</Typography> {/* Tailwind: responsive text size */}
+                <Typography variant="h6" color="primary" className="text-xl sm:text-2xl">${finalTotalPrice.toFixed(2)}</Typography> {/* Tailwind: responsive text size */}
               </ListItem>
             </List>
           </Grid>

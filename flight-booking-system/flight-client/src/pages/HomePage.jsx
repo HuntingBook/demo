@@ -1,7 +1,7 @@
 // src/pages/HomePage.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Box, Typography, TextField, Button, Grid, Paper, Alert } from '@mui/material';
+import { Container, Box, Typography, TextField, Button, Grid, Paper, Alert, RadioGroup, FormControlLabel, Radio, FormControl, FormLabel } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -15,8 +15,8 @@ export default function HomePage() {
   const [fromAirportCode, setFromAirportCode] = useState('');
   const [toAirportCode, setToAirportCode] = useState('');
   const [departureDate, setDepartureDate] = useState(null); // MUI DatePicker uses null for no date
-  // const [returnDate, setReturnDate] = useState(null); // For round trip
-  // const [tripType, setTripType] = useState('ONE_WAY'); // 'ONE_WAY' or 'ROUND_TRIP'
+  const [returnDate, setReturnDate] = useState(null); // For round trip
+  const [tripType, setTripType] = useState('ONE_WAY'); // 'ONE_WAY' or 'ROUND_TRIP'
   const [passengers, setPassengers] = useState(1); // Default to 1 passenger
   const [error, setError] = useState('');
 
@@ -37,16 +37,32 @@ export default function HomePage() {
         return;
     }
 
-    // Format date for API if needed, e.g., YYYY-MM-DD
-    const formattedDepartureDate = dayjs(departureDate).format('YYYY-MM-DD');
-
-    // Construct query parameters
-    const queryParams = new URLSearchParams({
+    const searchPayload = {
       from: fromAirportCode,
       to: toAirportCode,
-      date: formattedDepartureDate,
+      date: dayjs(departureDate).format('YYYY-MM-DD'),
+      tripType: tripType,
       // passengers: passengers.toString(), // If backend supports
-    }).toString();
+    };
+
+    if (tripType === 'ROUND_TRIP') {
+      if (!returnDate) {
+        setError('Please select a return date for round trip.');
+        return;
+      }
+      if (!dayjs(returnDate).isValid()) {
+        setError('Invalid return date.');
+        return;
+      }
+      if (dayjs(returnDate).isBefore(dayjs(departureDate))) {
+        setError('Return date cannot be before departure date.');
+        return;
+      }
+      searchPayload.returnDate = dayjs(returnDate).format('YYYY-MM-DD');
+    }
+
+    // Construct query parameters
+    const queryParams = new URLSearchParams(searchPayload).toString();
 
     // Navigate to flight list page with query parameters
     navigate(`/flights?${queryParams}`);
@@ -73,10 +89,29 @@ export default function HomePage() {
           <Typography variant="h4" component="h1" gutterBottom align="center" className="text-purple-600 font-extrabold" sx={{fontSize: {xs: '1.75rem', sm: '2rem', md: '2.25rem'}}}>
             Search Flights
           </Typography>
-          <p className="text-red-500 text-xl text-center my-2">Tailwind Test Paragraph</p>
           {error && <Alert severity="error" className="mb-4">{error}</Alert>} {/* Tailwind for margin */}
           <Box component="form" onSubmit={handleSubmit} noValidate>
             {/* Grid uses MUI for layout, Tailwind for responsive spacing (via sx for complex responsive) */}
+<Grid item xs={12}>
+                <FormControl component="fieldset">
+                  <FormLabel component="legend" className="text-sm">Trip Type</FormLabel>
+                  <RadioGroup
+                    row
+                    aria-label="trip-type"
+                    name="trip-type"
+                    value={tripType}
+                    onChange={(e) => {
+                      setTripType(e.target.value);
+                      if (e.target.value === 'ONE_WAY') {
+                        setReturnDate(null); // Clear return date if switching to one-way
+                      }
+                    }}
+                  >
+                    <FormControlLabel value="ONE_WAY" control={<Radio />} label="One Way" />
+                    <FormControlLabel value="ROUND_TRIP" control={<Radio />} label="Round Trip" />
+                  </RadioGroup>
+                </FormControl>
+              </Grid>
             <Grid container spacing={{ xs: 2, md: 3 }}> 
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -116,18 +151,20 @@ export default function HomePage() {
                   format="YYYY-MM-DD"
                 />
               </Grid>
-              {/* <Grid item xs={12} sm={6}> // For Round Trip
-                <DatePicker
-                  label="Return Date"
-                  value={returnDate}
-                  onChange={(newValue) => setReturnDate(newValue)}
-                  disabled={tripType === 'ONE_WAY'}
-                  slotProps={{ textField: { fullWidth: true } }}
-                  minDate={departureDate ? dayjs(departureDate).add(1, 'day') : undefined}
-                  disablePast
-                />
-              </Grid> */}
-              <Grid item xs={12} sm={6}>
+              {tripType === 'ROUND_TRIP' && (
+                <Grid item xs={12} sm={6}>
+                  <DatePicker
+                    label="Return Date"
+                    value={returnDate}
+                    onChange={(newValue) => setReturnDate(newValue)}
+                    slotProps={{ textField: { required: true, fullWidth: true, name: 'returnDate', className:"mt-2" } }}
+                    minDate={departureDate ? dayjs(departureDate).add(1, 'day') : undefined}
+                    disablePast
+                    format="YYYY-MM-DD"
+                  />
+                </Grid>
+              )}
+              <Grid item xs={12} sm={tripType === 'ROUND_TRIP' ? 12 : 6}> {/* Adjust passenger field width */}
                 <TextField
                   fullWidth
                   id="passengers"

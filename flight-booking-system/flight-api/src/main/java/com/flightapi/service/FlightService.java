@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Collections;
@@ -103,8 +105,16 @@ public class FlightService {
             return Collections.emptyList();
         }
 
-        // Convert Flight entities to FlightDTOs
+        // Convert Flight entities to FlightDTOs and filter out past flights
+        LocalDateTime currentDateTime = LocalDateTime.now();
         return flights.stream()
+                .filter(flight -> {
+                    if (flight.getDepartureDate() == null || flight.getDepartureTime() == null) {
+                        return false; // Cannot determine if it's in the past, exclude
+                    }
+                    LocalDateTime departureDateTime = LocalDateTime.of(flight.getDepartureDate(), flight.getDepartureTime());
+                    return departureDateTime.isAfter(currentDateTime);
+                })
                 .map(FlightDTO::fromFlight)
                 .collect(Collectors.toList());
     }
