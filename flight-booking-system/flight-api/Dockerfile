@@ -1,6 +1,6 @@
 # ---- Stage 1: Build ----
 # Use a Maven/JDK image for building
-FROM maven:3.9-eclipse-temurin-17 AS builder
+FROM maven:3.9-eclipse-temurin-18 AS builder
 
 # Declare the build argument with a default value
 ARG PROFILE=dev
@@ -29,7 +29,7 @@ RUN echo "Building with Maven profile: ${PROFILE}" && \
 
 # ---- Stage 2: Runtime ----
 # Use a lightweight JRE image for the final image
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:18-jre
 
 # Set working directory
 WORKDIR /app
