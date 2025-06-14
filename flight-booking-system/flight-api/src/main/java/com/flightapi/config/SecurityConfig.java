@@ -115,7 +115,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173")); // Allow frontend and Vite dev server
+        configuration.setAllowedOriginPatterns(java.util.Collections.singletonList("*"));
+        // configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173")); // Allow frontend and Vite dev server
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true); // Important for cookies, authorization headers with HTTPS

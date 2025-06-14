@@ -1,8 +1,10 @@
-# flight-api/Dockerfile
-FROM eclipse-temurin:21-jdk-jammy
+# Use JDK 18 runtime only
+FROM eclipse-temurin:18-jdk-jammy
+
 WORKDIR /app
-# This ARG is for the JAR file name, can be overridden at build time
-ARG JAR_FILE=target/flight-api-0.0.1-SNAPSHOT.jar
-COPY ${JAR_FILE} flight-api.jar
+
+COPY target/flight-api-0.0.1-SNAPSHOT.jar app.jar
+
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/flight-api.jar"]
+
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
