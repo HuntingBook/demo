@@ -4,7 +4,7 @@ spring:
   application:
     name: flight-api
   datasource:
-    url: jdbc:mysql://localhost:3306/flightdb?createDatabaseIfNotExist=true
+    url: jdbc:mysql://yanbin-flightdb.cj6gcogsidzt.ap-southeast-2.rds.amazonaws.com:3306/flightdb?createDatabaseIfNotExist=true
     username: demo
     password: Letgoflight
     driver-class-name: com.mysql.cj.jdbc.Driver

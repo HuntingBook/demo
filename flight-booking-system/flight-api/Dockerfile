@@ -1,10 +1,16 @@
-# Use JDK 18 runtime only
-FROM eclipse-temurin:18-jdk-jammy
-
+# Stage 1: Build stage
+FROM maven:3.8.6-jdk-17 AS builder
 WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline # Download dependencies
+COPY src ./src
 
-COPY target/flight-api-0.0.1-SNAPSHOT.jar app.jar
+ARG PROFILE=dev
+RUN mvn package -DskipTests -Dmaven.test.skip=true -P${PROFILE}
 
+# Stage 2: Runtime stage
+FROM openjdk:17-jre-slim
+WORKDIR /app
+COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 8080
-
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

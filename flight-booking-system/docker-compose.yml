@@ -9,7 +9,7 @@ services:
       MYSQL_ROOT_PASSWORD: Letgoflight # For initial setup, not used by app
       MYSQL_DATABASE: flightdb
       MYSQL_USER: demo
-      MYSQL_PASSWORD: 123456
+      MYSQL_PASSWORD: Letgoflight
     volumes:
       - mysql_data:/var/lib/mysql
       # Optional: If you have schema.sql and data.sql and want them to be run by MySQL entrypoint
@@ -34,7 +34,7 @@ services:
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/flightdb?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true # useSSL=false for local dev
       - SPRING_DATASOURCE_USERNAME=demo
-      - SPRING_DATASOURCE_PASSWORD=123456
+      - SPRING_DATASOURCE_PASSWORD=Letgoflight
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update # Or 'validate' if schema is managed by initdb.d
       - JWT_SECRET=GB62TuQZcNgH2AnleiiOyTN/h4733lYtrPLQNGp9Dqc= # Ensure this is strong
       - JWT_EXPIRATIONMS=3600000 # Note: yml uses expirationMs, env var might need to be all caps or exact match based on Spring's binder
